@@ -1,61 +1,75 @@
-import express from 'express'
+import express from "express";
+import http from "http";
+import { Server } from "socket.io";
+
 const app = express();
-import http from 'http'
-import {Server }from 'socket.io'
-
-
-//& passing this server to http so that we can use it in frontend
 const server = http.createServer(app);
-
-//& connecting our server to socketIo
-const io = new Server(server)
+const io = new Server(server);
 
 const PORT = process.env.PORT || 4000;
 
-//& logic for keeping ids unique for each user
+//& Store username for each socket.id
 const userSocketMap = {};
 
-//& function to get all the clients in a particular room
+//& Function to get all connected clients in a room
 const getAllConnectedClients = (roomId) => {
-    //& getting all the clients in a particular room
-    return Array.from(io.sockets.adapter.rooms.get(roomId) || []).map((socketId) => {
-        return {
-            socketId,
-            username: userSocketMap[socketId],
-        };
+  return Array.from(io.sockets.adapter.rooms.get(roomId) || []).map(
+    (socketId) => {
+      return {
+        socketId,
+        username: userSocketMap[socketId],
+      };
+    }
+  );
+};
+
+//& Socket.io connection logic
+io.on("connection", (socket) => {
+  console.log(`User connected: ${socket.id}`);
+
+  //& When a user joins a room
+  socket.on("join", ({ roomId, username }) => {
+    userSocketMap[socket.id] = username;
+    socket.join(roomId);
+
+    const clients = getAllConnectedClients(roomId);
+
+    // Notify all clients (including the new one)
+    clients.forEach(({ socketId }) => {
+      io.to(socketId).emit("joined", {
+        clients,
+        username,
+        socketId: socket.id,
+      });
     });
-}
+  });
 
+  //& When a user disconnects
+  socket.on("disconnect", () => {
+    const username = userSocketMap[socket.id];
+    delete userSocketMap[socket.id]; // remove from map
 
+    // Find all rooms the socket was in
+    const rooms = [...socket.rooms];
 
-//& io connection
-io.on('connection', (socket) => {
-    // console.log(`User connected: ${socket.id}`);
-    
-    socket.on('join', ({ roomId, username }) => {
-        // console.log(roomId, username);
-        userSocketMap[socket.id] = username;
-        socket.join(roomId);
-        // & getting all the clients in the room and if they ave already a user then we will send that user to the newly joined user
-        // & so that he can see who all are present in the room
-        // & we will send this data to all the clients which are already present in the room
-        // & so that they can update their client list
-        // & io.sockets.adapter.rooms.get(roomId) will give us a set of all the socket ids present in that room
-        const clients = getAllConnectedClients(roomId)
-        //& notifying all the clients that a new user has joined
-        clients.forEach(({ socketId }) => {
-            io.to(socketId).emit('joined', {
-                clients,
-                username,
-                socketId: socket.id,
-            });
+    rooms.forEach((roomId) => {
+      const clients = getAllConnectedClients(roomId);
+      clients.forEach(({ socketId }) => {
+        io.to(socketId).emit("left", {
+          clients,
+          username,
+          socketId: socket.id,
         });
-        
-    });
-})
+      });
+      });    // No need to delete socket.id from userSocketMap here, as it's already deleted above.
+    // The `delete userSocketMap[socket.id];` line handles this.
 
 
-//& since our app is based on socket io so our server will listen not app
-server.listen(PORT, () =>
-  console.log(`server is running on:  http://localhost:${PORT}`)
-);
+    console.log(`User disconnected: ${socket.id}`);
+  });
+});
+
+//& Start the server
+server.listen(PORT, () => {
+  console.log(`✅ Server is running on: http://localhost:${PORT}`);
+});

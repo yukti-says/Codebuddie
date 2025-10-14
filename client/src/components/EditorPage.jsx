@@ -25,6 +25,8 @@ function EditorPage() {
 
   //* using useRef to store the clients or instances of client bz using useRef when value will change it will not cause re-render of the component
   const socketRef = useRef(null) 
+    const [client, setClient] = useState([]);
+
 
   useEffect(() => {
     const init = async () => {
@@ -43,16 +45,17 @@ function EditorPage() {
         roomId,
         username
       })
+      socketRef.current.on('joined', ({ clients, username, socketId }) => {
+        if(username !== username){
+          toast.success(`${username} joined the room.`)
+        }
+        setClient(clients);
+      })
+
     }
     init();
   },[])
   
-  const [client, setClient] = useState([
-    { socketId: 1, username: "Yukti " },
-    { socketId: 2, username: "Anu" },
-    { socketId: 2, username: "shanj" },
-    { socketId: 2, username: "gunni" },
-  ]);
 
   //if no username is present then navigate to home page
   useEffect(() => {

@@ -52,8 +52,22 @@ function EditorPage() {
         setClient(clients);
       })
 
+      //& when a user leaves the room
+      socketRef.current.on('left', ({ clients, username, socketId }) => {
+        toast.success(`${username} left the room.`)
+        setClient(clients);
+      })
+
+      //& Clean up the socket connection when the component unmounts
+      return () => {
+        socketRef.current.disconnect();
+        socketRef.current.off('joined');
+        socketRef.current.off('left');
+      };
     }
     init();
+
+    
   },[])
   
 
@@ -62,7 +76,24 @@ function EditorPage() {
     if(!location.state){
       navigate("/");
     }
-  },[])
+  }, [])
+  
+
+  const CopyText = async () => {
+    try {
+      await navigator.clipboard.writeText(roomId);
+      toast.success("Room Id copied to clipboard");
+    } catch (err) {
+      toast.error("Could not copy the Room Id");
+      console.error(err);
+    }
+  };
+
+
+  const leaveRoom = () => {
+    socketRef.current?.disconnect();
+    navigate("/");
+  };
 
   return (
     <div className="container-fluid vh-100">
@@ -95,8 +126,12 @@ function EditorPage() {
           {/* Buttons at bottom */}
           <div className="p-2 w-100">
             <hr />
-            <button className="btn btn-success w-100 mb-2">Copy Room Id</button>
-            <button className="btn btn-danger w-100">Leave Room</button>
+            <button className="btn btn-success w-100 mb-2"
+            onClick={CopyText}
+            >Copy Room Id</button>
+            <button className="btn btn-danger w-100"
+            onClick={leaveRoom}
+            >Leave Room</button>
           </div>
         </div>
 

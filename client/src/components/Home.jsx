@@ -1,4 +1,41 @@
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import {  v4 as  uuid} from 'uuid'
+
+
 const Home = () => {
+
+  //* state for storing roomId and username
+  const [roomId, setRoomId] = useState("")
+  const [username, setUserName] = useState("")
+  const navigate = useNavigate()
+  
+  const generateRoomId = (e) => {
+    e.preventDefault()
+    const id = uuid();
+    setRoomId(id);
+    toast.success("Room Id Generated")
+
+  }
+
+  //* method for joinning the room
+  const joinRoom = (e) => {
+    e.preventDefault()
+    if (!roomId || !username) {
+      toast.error("Both fileds are required!")
+      return;
+    }
+
+    //* from where we are going or entering into the editor page meaning from home to editor page we are going so we can also send some data along with it.
+    navigate(`/editor/:${roomId}`,
+      {state:{username}}
+    )
+    toast.success("Room is created!")
+
+   
+  }
+
   return (
     <div className="container-fluid">
       <div className="row justify-content-center align-items-center min-vh-100 d-flex">
@@ -15,6 +52,8 @@ const Home = () => {
               <form>
                 <div className="form-floating mb-3">
                   <input
+                    value={roomId}
+                    onChange={(e)=>setRoomId(e.target.value)}
                     type="text"
                     className="form-control"
                     id="roomIdInput"
@@ -26,6 +65,8 @@ const Home = () => {
                 </div>
                 <div className="form-floating mb-3">
                   <input
+                    value={username}
+                    onChange={(e)=>setUserName(e.target.value)}
                     type="text"
                     className="form-control"
                     id="usernameInput"
@@ -38,12 +79,17 @@ const Home = () => {
                 <button
                   className="btn btn-success btn-lg w-100 mb-3"
                   type="submit"
+                  onClick={joinRoom}
                 >
                   Join
                 </button>
                 <p className="mb-0">
                   Don't have an invite?{" "}
-                  <a href="#" className="text-success fw-bold">
+                  <a
+                    onClick={generateRoomId}
+                    href="#"
+                    className="text-success fw-bold"
+                  >
                     Create a new room
                   </a>
                 </p>

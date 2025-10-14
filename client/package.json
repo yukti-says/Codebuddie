@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
-    "codemirror": "^6.0.2",
+    "codemirror": "^5.65.15",
     "react": "^19.1.1",
     "react-avatar": "^5.0.4",
     "react-dom": "^19.1.1",

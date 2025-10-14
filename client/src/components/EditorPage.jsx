@@ -1,11 +1,51 @@
 import { useState } from "react";
 import Client from "./Client";
 import Editor from "./Editor";
+import { useRef } from "react";
+import { useEffect } from "react";
+import { initSocket } from "../socket";
+import { useLocation, useParams } from 'react-router-dom'
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+
+
 
 
 
 
 function EditorPage() {
+
+  const navigate = useNavigate();
+
+  //* getting roomId and username from url
+  const location = useLocation();
+  const { roomId } = useParams();
+  const username = location.state?.username;
+
+
+  //* using useRef to store the clients or instances of client bz using useRef when value will change it will not cause re-render of the component
+  const socketRef = useRef(null) 
+
+  useEffect(() => {
+    const init = async () => {
+      socketRef.current = await initSocket();
+      // handle error
+      socketRef.current.on('connect_error', (err) => handleErrors(err));
+      const handleErrors = (err) => {
+        console.log("socket error", err);
+        toast.error("Socket connection failed, try again later.");
+        navigate("/");
+        
+      };
+      socketRef.current.on('connect_failed', (err) => handleErrors(err));
+      //* now sending a event to server that we are connected
+      socketRef.current.emit('join', {
+        roomId,
+        username
+      })
+    }
+    init();
+  },[])
   
   const [client, setClient] = useState([
     { socketId: 1, username: "Yukti " },
@@ -14,6 +54,12 @@ function EditorPage() {
     { socketId: 2, username: "gunni" },
   ]);
 
+  //if no username is present then navigate to home page
+  useEffect(() => {
+    if(!location.state){
+      navigate("/");
+    }
+  },[])
 
   return (
     <div className="container-fluid vh-100">

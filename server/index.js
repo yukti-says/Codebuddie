@@ -4,72 +4,89 @@ import { Server } from "socket.io";
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Allow all origins for dev (change to your frontend URL in prod)
+  },
+});
 
 const PORT = process.env.PORT || 4000;
 
-//& Store username for each socket.id
+// Track usernames for each socket ID
 const userSocketMap = {};
 
-//& Function to get all connected clients in a room
+// Helper function — returns all clients in a room
 const getAllConnectedClients = (roomId) => {
   return Array.from(io.sockets.adapter.rooms.get(roomId) || []).map(
-    (socketId) => {
-      return {
-        socketId,
-        username: userSocketMap[socketId],
-      };
-    }
+    (socketId) => ({
+      socketId,
+      username: userSocketMap[socketId],
+    })
   );
 };
 
-//& Socket.io connection logic
+// Main socket connection
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
+  console.log(`🟢 User connected: ${socket.id}`);
 
-  //& When a user joins a room
+  // --- User joins a room ---
   socket.on("join", ({ roomId, username }) => {
     userSocketMap[socket.id] = username;
     socket.join(roomId);
 
     const clients = getAllConnectedClients(roomId);
 
-    // Notify all clients (including the new one)
+    // Notify everyone (including the new user)
     clients.forEach(({ socketId }) => {
       io.to(socketId).emit("joined", {
         clients,
-        username,
+        username: userSocketMap[socket.id],
         socketId: socket.id,
       });
     });
+
+    console.log(`👥 ${username} joined room ${roomId}`);
   });
 
-  //& When a user disconnects
-  socket.on("disconnect", () => {
-    const username = userSocketMap[socket.id];
-    delete userSocketMap[socket.id]; // remove from map
+  // --- Handle code synchronization ---
+  socket.on("code-change", ({ roomId, code }) => {
+    socket.to(roomId).emit("code-change", { code });
+  });
 
-    // Find all rooms the socket was in
+  // --- Handle user leaving manually ---
+  socket.on("leave-room", ({ roomId, username }) => {
+    socket.leave(roomId);
+    delete userSocketMap[socket.id];
+
+    const clients = getAllConnectedClients(roomId);
+    clients.forEach(({ socketId }) => {
+      io.to(socketId).emit("user-left", {
+        clients,
+        username: userSocketMap[socket.id],
+        socketId: socket.id,
+      });
+    });
+
+    console.log(`🔴 ${username} left room ${roomId}`);
+  });
+
+  // --- Handle browser close / tab refresh ---
+  socket.on("disconnecting", () => {
+    const username = userSocketMap[socket.id];
     const rooms = [...socket.rooms];
 
     rooms.forEach((roomId) => {
-      const clients = getAllConnectedClients(roomId);
-      clients.forEach(({ socketId }) => {
-        io.to(socketId).emit("left", {
-          clients,
-          username,
-          socketId: socket.id,
-        });
-      });
-      });    // No need to delete socket.id from userSocketMap here, as it's already deleted above.
-    // The `delete userSocketMap[socket.id];` line handles this.
+      socket.in(roomId).emit('disconnected', {
+        socketId: socket.id,
+        username:userSocketMap[socket.id]
+      })
+    });
 
-
-    console.log(`User disconnected: ${socket.id}`);
+    delete userSocketMap[socket.id];
+    console.log(`⚪ ${username || "User"} disconnected.`);
   });
 });
 
-//& Start the server
 server.listen(PORT, () => {
-  console.log(`✅ Server is running on: http://localhost:${PORT}`);
+  console.log(`✅ Server running on http://localhost:${PORT}`);
 });

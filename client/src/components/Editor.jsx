@@ -8,14 +8,12 @@ import "codemirror/addon/edit/closebrackets";
 import "codemirror/addon/scroll/simplescrollbars.css";
 import "codemirror/addon/scroll/simplescrollbars";
 
-function Editor() {
-
+function Editor({ socketRef, roomId, username }) {
   const editorRef = useRef(null);
   const [wordCount, setWordCount] = useState(0);
 
   useEffect(() => {
     const init = async () => {
-      //* specifing the place where codemirror will be there is in textArea we get it through realtimeEditor id
       const editor = CodeMirror.fromTextArea(
         document.getElementById("realtimeEditor"),
         {
@@ -25,25 +23,42 @@ function Editor() {
           autoCloseBrackets: true,
           lineNumbers: true,
           scrollbarStyle: "simple",
-          extraKeys: {
-            "Ctrl-Enter": () => alert("Run code!"),
-          },
         }
       );
 
+      editorRef.current = editor; // ✅ store the instance
       editor.setSize("100%", "100%");
-      editor.setValue("// Start typing your code or English sentence here...");
-      editorRef.current = editor;
+      editor.setValue("// Start typing your code...");
 
-      editor.on("change", () => {
-        const text = editor.getValue();
-        const words = text.trim().split(/\s+/).filter(Boolean);
-        setWordCount(words.length);
+      editor.on("change", (instance, changes) => {
+        const { origin } = changes;
+        const code = instance.getValue();
+        if (origin !== "setValue") {
+          socketRef.current.emit("code-change", { code, roomId });
+        }
       });
     };
 
     init();
-  }, []);
+  }, [socketRef, roomId]);
+
+  // ✅ Listen for changes from others
+  useEffect(() => {
+    if (!socketRef.current) return;
+
+    const handleCodeChange = ({ code }) => {
+      if (code !== null && editorRef.current) {
+        editorRef.current.setValue(code);
+      }
+    };
+
+    socketRef.current.on("code-change", handleCodeChange);
+
+    // cleanup on unmount
+    return () => {
+      socketRef.current.off("code-change", handleCodeChange);
+    };
+  }, [socketRef]);
 
   return (
     <div style={{ height: "100%", width: "100%", position: "relative" }}>

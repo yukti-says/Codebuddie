@@ -60,12 +60,13 @@ function EditorPage() {
     if (!location.state) navigate("/");
   }, [location.state, navigate]);
 
-  const copyRoomId = async () => {
+  const copyRoomLink = async () => {
     try {
-      await navigator.clipboard.writeText(roomId);
-      toast.success("Room ID copied!");
+      const link = `${window.location.origin}/editor/${roomId}`;
+      await navigator.clipboard.writeText(link);
+      toast.success("Shareable link copied to clipboard!");
     } catch (err) {
-      toast.error("Failed to copy Room ID.");
+      toast.error("Failed to copy link.");
       console.error(err);
     }
   };
@@ -99,8 +100,11 @@ function EditorPage() {
 
           <div className="p-2 w-100">
             <hr />
-            <button className="btn btn-success w-100 mb-2" onClick={copyRoomId}>
-              Copy Room ID
+            <button
+              className="btn btn-success w-100 mb-2"
+              onClick={copyRoomLink}
+            >
+              Copy Link
             </button>
             <button className="btn btn-danger w-100" onClick={leaveRoom}>
               Leave Room

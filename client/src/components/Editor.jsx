@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import CodeMirror from "codemirror";
 import "codemirror/lib/codemirror.css";
 import "codemirror/theme/dracula.css";
@@ -8,9 +8,8 @@ import "codemirror/addon/edit/closebrackets";
 import "codemirror/addon/scroll/simplescrollbars.css";
 import "codemirror/addon/scroll/simplescrollbars";
 
-function Editor({ socketRef, roomId, username }) {
+function Editor({ socket, roomId }) {
   const editorRef = useRef(null);
-  const [wordCount, setWordCount] = useState(0);
 
   useEffect(() => {
     const init = async () => {
@@ -33,47 +32,40 @@ function Editor({ socketRef, roomId, username }) {
       editor.on("change", (instance, changes) => {
         const { origin } = changes;
         const code = instance.getValue();
+        // only emit user-initiated changes (not setValue calls)
         if (origin !== "setValue") {
-          socketRef.current.emit("code-change", { code, roomId });
+          if (socket && socket.connected)
+            socket.emit("code-change", { code, roomId });
         }
       });
     };
 
     init();
-  }, [socketRef, roomId]);
+  }, [socket, roomId]);
 
   // ✅ Listen for changes from others
   useEffect(() => {
-    if (!socketRef.current) return;
+    if (!socket) return;
 
     const handleCodeChange = ({ code }) => {
       if (code !== null && editorRef.current) {
+        // setValue will mark origin so local 'change' won't re-emit
         editorRef.current.setValue(code);
       }
     };
 
-    socketRef.current.on("code-change", handleCodeChange);
+    socket.on("code-change", handleCodeChange);
 
-    // cleanup on unmount
+    // cleanup on unmount or socket change
     return () => {
-      socketRef.current.off("code-change", handleCodeChange);
+      socket.off("code-change", handleCodeChange);
     };
-  }, [socketRef]);
+  }, [socket]);
 
   return (
     <div style={{ height: "100%", width: "100%", position: "relative" }}>
       <textarea id="realtimeEditor" />
-      <div
-        style={{
-          position: "absolute",
-          bottom: "10px",
-          right: "20px",
-          color: "white",
-          fontSize: "0.9rem",
-        }}
-      >
-        Word Count: {wordCount}
-      </div>
+      {/* optional UI can go here */}
     </div>
   );
 }

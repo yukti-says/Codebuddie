@@ -14,6 +14,8 @@ const PORT = process.env.PORT || 4000;
 
 // Track usernames for each socket ID
 const userSocketMap = {};
+// Track latest code for each room so new joiners can be synced
+const roomCodeMap = {};
 
 // Helper function — returns all clients in a room
 const getAllConnectedClients = (roomId) => {
@@ -45,29 +47,39 @@ io.on("connection", (socket) => {
       });
     });
 
+    // Send the current room code to the newly joined socket so they get synced
+    const currentCode = roomCodeMap[roomId] || "";
+    io.to(socket.id).emit("code-change", { code: currentCode });
+
     console.log(`👥 ${username} joined room ${roomId}`);
   });
 
   // --- Handle code synchronization ---
   socket.on("code-change", ({ roomId, code }) => {
+    // save latest code for the room
+    if (roomId) roomCodeMap[roomId] = code;
     socket.to(roomId).emit("code-change", { code });
   });
 
   // --- Handle user leaving manually ---
-  socket.on("leave-room", ({ roomId, username }) => {
+  // Listen for the event the client actually emits (leaveRoom)
+  socket.on("leaveRoom", ({ roomId, username }) => {
+    // capture username before removing map entry
+    const leavingUsername = userSocketMap[socket.id] || username;
     socket.leave(roomId);
     delete userSocketMap[socket.id];
 
     const clients = getAllConnectedClients(roomId);
     clients.forEach(({ socketId }) => {
-      io.to(socketId).emit("user-left", {
+      // emit the event name the client listens to ('left')
+      io.to(socketId).emit("left", {
         clients,
-        username: userSocketMap[socket.id],
+        username: leavingUsername,
         socketId: socket.id,
       });
     });
 
-    console.log(`🔴 ${username} left room ${roomId}`);
+    console.log(`🔴 ${leavingUsername} left room ${roomId}`);
   });
 
   // --- Handle browser close / tab refresh ---
@@ -76,10 +88,10 @@ io.on("connection", (socket) => {
     const rooms = [...socket.rooms];
 
     rooms.forEach((roomId) => {
-      socket.in(roomId).emit('disconnected', {
+      socket.in(roomId).emit("disconnected", {
         socketId: socket.id,
-        username:userSocketMap[socket.id]
-      })
+        username: username,
+      });
     });
 
     delete userSocketMap[socket.id];

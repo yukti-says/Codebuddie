@@ -27,9 +27,6 @@ function EditorPage() {
       socketRef.current.on("connect_error", handleErrors);
       socketRef.current.on("connect_failed", handleErrors);
 
-      // Join event
-      socketRef.current.emit("join", { roomId, username });
-
       // New user joined
       socketRef.current.on("joined", ({ clients, username: joinedUser }) => {
         if (joinedUser !== username) {
@@ -43,6 +40,9 @@ function EditorPage() {
         toast(`${leftUser} left the room.`);
         setClients(clients);
       });
+
+      // Now emit join after listeners are attached
+      socketRef.current.emit("join", { roomId, username });
     };
 
     init();
@@ -110,7 +110,11 @@ function EditorPage() {
 
         {/* Editor Section */}
         <div className="col-md-10 d-flex flex-column h-100">
-          <Editor socketRef={socketRef} roomId={roomId} username={username} />
+          <Editor
+            socket={socketRef.current}
+            roomId={roomId}
+            username={username}
+          />
         </div>
       </div>
     </div>

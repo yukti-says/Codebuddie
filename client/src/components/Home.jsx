@@ -1,40 +1,33 @@
-import { useState } from 'react';
-import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
-import {  v4 as  uuid} from 'uuid'
-
+import { useState } from "react";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+import { v4 as uuid } from "uuid";
 
 const Home = () => {
-
   //* state for storing roomId and username
-  const [roomId, setRoomId] = useState("")
-  const [username, setUserName] = useState("")
-  const navigate = useNavigate()
-  
+  const [roomId, setRoomId] = useState("");
+  const [username, setUserName] = useState("");
+  const navigate = useNavigate();
+
   const generateRoomId = (e) => {
-    e.preventDefault()
+    e.preventDefault();
     const id = uuid();
     setRoomId(id);
-    toast.success("Room Id Generated")
-
-  }
+    toast.success("Room Id Generated");
+  };
 
   //* method for joinning the room
   const joinRoom = (e) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!roomId || !username) {
-      toast.error("Both fileds are required!")
+      toast.error("Both fileds are required!");
       return;
     }
 
     //* from where we are going or entering into the editor page meaning from home to editor page we are going so we can also send some data along with it.
-    navigate(`/editor/:${roomId}`,
-      {state:{username}}
-    )
-    toast.success("Room is created!")
-
-   
-  }
+    navigate(`/editor/${roomId}`, { state: { username } });
+    toast.success("Room is created!");
+  };
 
   return (
     <div className="container-fluid">
@@ -53,7 +46,7 @@ const Home = () => {
                 <div className="form-floating mb-3">
                   <input
                     value={roomId}
-                    onChange={(e)=>setRoomId(e.target.value)}
+                    onChange={(e) => setRoomId(e.target.value)}
                     type="text"
                     className="form-control"
                     id="roomIdInput"
@@ -66,7 +59,7 @@ const Home = () => {
                 <div className="form-floating mb-3">
                   <input
                     value={username}
-                    onChange={(e)=>setUserName(e.target.value)}
+                    onChange={(e) => setUserName(e.target.value)}
                     type="text"
                     className="form-control"
                     id="usernameInput"

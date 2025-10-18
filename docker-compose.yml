@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  server:
+    build: ./server
+    container_name: codebuddie-server
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PORT=4000
+      - JWT_SECRET=${JWT_SECRET}
+    ports:
+      - "4000:4000"
+    depends_on:
+      - redis
+
+  client:
+    build: ./client
+    container_name: codebuddie-client
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
+
+  redis:
+    image: redis:7-alpine
+    container_name: codebuddie-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"

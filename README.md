@@ -37,7 +37,8 @@ This README documents how to run the project locally, explains the main architec
 
 ## Demo
 
-![Codebuddie demo](client/public/images/image.png)
+![Codebuddie demo](image.png)
+
 
 
 ## Repository structure

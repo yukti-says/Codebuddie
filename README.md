@@ -105,7 +105,6 @@ The repo uses a few environment values (defaults are provided in code for develo
 - `JWT_SECRET` — secret used by the server when issuing/verifying JWTs (only relevant if you use the optional auth endpoints)
 - `VITE_REACT_APP_BACKEND_URL` — (client) base URL for the backend (default `http://localhost:4000`)
 
-You can place client environment variables in a `.env` file under `client/` following Vite conventions (for example: `VITE_REACT_APP_BACKEND_URL=http://localhost:4000`).
 
 ---
 
@@ -219,9 +218,4 @@ Stop the stack:
 ```bash
 docker-compose down
 ```
-
-Notes:
-
-- If you plan to run multiple server instances behind a load balancer, configure the Socket.IO Redis adapter and point `REDIS_URL` to a shared Redis instance.
-- The compose file exposes the server on `4000` which is useful for debugging; in production you may not expose the server port directly and instead use a load balancer.
 
